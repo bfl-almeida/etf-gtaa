@@ -33,6 +33,14 @@ def main() -> None:
     bt.add_argument("--sma-window", type=int, default=10)
     bt.add_argument("--cost-bps", type=float, default=10.0)
     bt.add_argument("--initial-capital", type=float, default=100_000.0)
+    bt.add_argument(
+        "--strategy",
+        choices=["faber", "dual_momentum"],
+        default="faber",
+        help="Timing strategy to run (default: faber).",
+    )
+    bt.add_argument("--top-k", type=int, default=2, help="Dual momentum: assets selected by relative ranking.")
+    bt.add_argument("--momentum-lookback", type=int, default=12, help="Dual momentum: return lookback in months.")
 
     args = parser.parse_args()
     if args.cmd == "backtest":
@@ -45,7 +53,7 @@ def _run_backtest_cli(args: argparse.Namespace) -> None:
     from etf_gtaa.config import BacktestConfig
     from etf_gtaa.data import load_prices, to_monthly
     from etf_gtaa.metrics import summary
-    from etf_gtaa.signals import equal_weight_targets, faber_signal
+    from etf_gtaa.signals import dual_momentum, equal_weight_targets, faber_signal
 
     config = BacktestConfig(
         tickers=tuple(args.tickers),
@@ -55,6 +63,8 @@ def _run_backtest_cli(args: argparse.Namespace) -> None:
         sma_window=args.sma_window,
         transaction_cost_bps=args.cost_bps,
         initial_capital=args.initial_capital,
+        top_k=args.top_k,
+        momentum_lookback=args.momentum_lookback,
     )
 
     all_tickers = list(config.tickers)
@@ -72,8 +82,18 @@ def _run_backtest_cli(args: argparse.Namespace) -> None:
     else:
         cash_return = 0.0
 
-    signal = faber_signal(risky, window=config.sma_window)
-    targets = equal_weight_targets(signal)
+    if args.strategy == "faber":
+        signal = faber_signal(risky, window=config.sma_window)
+        targets = equal_weight_targets(signal)
+        strategy_label = "Faber GTAA"
+    else:
+        targets = dual_momentum(
+            risky,
+            lookback=config.momentum_lookback,
+            top_k=config.top_k,
+            cash_returns=cash_return,
+        )
+        strategy_label = "Dual Momentum"
 
     result = run_backtest(
         risky,
@@ -101,7 +121,7 @@ def _run_backtest_cli(args: argparse.Namespace) -> None:
 
     table = pd.DataFrame(
         {
-            "Faber GTAA": summary(result.monthly_returns, result.equity_curve),
+            strategy_label: summary(result.monthly_returns, result.equity_curve),
             "EW Buy & Hold": summary(bnh_result.monthly_returns, bnh_result.equity_curve),
         }
     )
@@ -115,7 +135,7 @@ def _run_backtest_cli(args: argparse.Namespace) -> None:
         if config.cash_ticker is not None and isinstance(cash_return, pd.Series)
         else "fallback (0%)"
     )
-    total_to_faber = result.turnover.sum()
+    total_to_strategy = result.turnover.sum()
     total_to_bnh = bnh_result.turnover.sum()
 
     print("\nDiagnostics")
@@ -123,6 +143,6 @@ def _run_backtest_cli(args: argparse.Namespace) -> None:
     print(f"  Cash return source      : {cash_source}")
     print(
         f"  Total one-way turnover  : "
-        f"{total_to_faber:.2f}x (Faber GTAA) | {total_to_bnh:.2f}x (EW Buy & Hold)"
+        f"{total_to_strategy:.2f}x ({strategy_label}) | {total_to_bnh:.2f}x (EW Buy & Hold)"
     )
 
