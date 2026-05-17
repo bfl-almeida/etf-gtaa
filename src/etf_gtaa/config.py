@@ -20,7 +20,7 @@ class BacktestConfig:
 
     tickers: tuple[str, ...] = ("SPY", "EFA", "IYR", "GSG", "AGG")
     cash_ticker: str | None = "BIL"
-    start: date = date(2003, 9, 1)
+    start: date = date(2007, 6, 1)
     end: date | None = None
     sma_window: int = 10
     transaction_cost_bps: float = 10.0

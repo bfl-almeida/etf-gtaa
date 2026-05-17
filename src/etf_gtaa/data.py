@@ -13,6 +13,28 @@ import pandas as pd
 CACHE_DIR = Path(__file__).resolve().parents[2] / "data"
 
 
+def _assert_no_nan(prices: pd.DataFrame, start: date) -> None:
+    """Raise ValueError if any column still contains NaN after forward-fill.
+
+    After ffill, only leading NaN (before a ticker's inception) can remain.
+    Any such gap means the requested start date predates that ticker's data.
+
+    Args:
+        prices: price DataFrame returned by the loader.
+        start: the requested start date, used in the error message.
+    """
+    nan_cols = [str(c) for c in prices.columns if prices[c].isna().any()]
+    if nan_cols:
+        details = "; ".join(
+            f"{c} first trades {prices[c].first_valid_index().date()}"
+            for c in nan_cols
+        )
+        raise ValueError(
+            f"Prices contain NaN from {start} for: {details}. "
+            "Use a later start date or swap to a fallback ticker."
+        )
+
+
 def load_prices(
     tickers: list[str],
     start: date,
@@ -42,34 +64,35 @@ def load_prices(
     cache_path = CACHE_DIR / f"{ticker_key}_{start}_{end_date}.parquet"
 
     if use_cache and cache_path.exists():
-        return pd.read_parquet(cache_path)[tickers]
-
-    import yfinance as yf  # local import: keeps I/O out of the engine modules
-
-    # yfinance end is exclusive — add one day to include end_date
-    raw = yf.download(
-        tickers,
-        start=str(start),
-        end=str(end_date + timedelta(days=1)),
-        auto_adjust=True,
-        progress=False,
-    )
-
-    if isinstance(raw.columns, pd.MultiIndex):
-        prices: pd.DataFrame = raw["Close"]
-        if isinstance(prices, pd.Series):
-            prices = prices.to_frame(name=tickers[0])
-        else:
-            prices = prices[list(tickers)]
+        prices: pd.DataFrame = pd.read_parquet(cache_path)[tickers]
     else:
-        prices = raw[["Close"]].rename(columns={"Close": tickers[0]})
+        import yfinance as yf  # local import: keeps I/O out of the engine modules
 
-    prices = prices.ffill()
+        # yfinance end is exclusive — add one day to include end_date
+        raw = yf.download(
+            tickers,
+            start=str(start),
+            end=str(end_date + timedelta(days=1)),
+            auto_adjust=True,
+            progress=False,
+        )
 
-    if use_cache:
-        CACHE_DIR.mkdir(parents=True, exist_ok=True)
-        prices.to_parquet(cache_path)
+        if isinstance(raw.columns, pd.MultiIndex):
+            prices = raw["Close"]
+            if isinstance(prices, pd.Series):
+                prices = prices.to_frame(name=tickers[0])
+            else:
+                prices = prices[list(tickers)]
+        else:
+            prices = raw[["Close"]].rename(columns={"Close": tickers[0]})
 
+        prices = prices.ffill()
+
+        if use_cache:
+            CACHE_DIR.mkdir(parents=True, exist_ok=True)
+            prices.to_parquet(cache_path)
+
+    _assert_no_nan(prices, start)
     return prices[tickers]
 
 
