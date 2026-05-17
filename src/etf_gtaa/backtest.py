@@ -9,6 +9,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 import numpy as np
+import numpy.typing as npt
 import pandas as pd
 
 
@@ -74,26 +75,26 @@ def run_backtest(
     w_period = target_weights.iloc[:-1]  # (T-1) x (N+1)
 
     # Gross portfolio return contributions
-    w_risky: np.ndarray = w_period[risky_cols].values  # (T-1) x N
-    gross_risky: np.ndarray = (w_risky * risky_rets.values).sum(axis=1)  # (T-1,)
+    w_risky: npt.NDArray[np.float64] = w_period[risky_cols].values  # (T-1) x N
+    gross_risky: npt.NDArray[np.float64] = (w_risky * risky_rets.values).sum(axis=1)  # (T-1,)
 
-    w_cash: np.ndarray = w_period["CASH"].values  # (T-1,)
+    w_cash: npt.NDArray[np.float64] = w_period["CASH"].values  # (T-1,)
     if isinstance(cash_return, (int, float)):
-        cash_ret_arr: np.ndarray = np.full(len(risky_rets), float(cash_return))
+        cash_ret_arr: npt.NDArray[np.float64] = np.full(len(risky_rets), float(cash_return))
     else:
         cash_ret_arr = cash_return.reindex(risky_rets.index, fill_value=0.0).values
 
-    gross_return: np.ndarray = gross_risky + w_cash * cash_ret_arr  # (T-1,)
+    gross_return: npt.NDArray[np.float64] = gross_risky + w_cash * cash_ret_arr  # (T-1,)
 
     # One-way turnover: |target[t] - target[t-1]|.sum() / 2
     # Implicit prior position before the backtest is all-zero.
-    w_all: np.ndarray = w_period.values  # (T-1) x (N+1)
+    w_all: npt.NDArray[np.float64] = w_period.values  # (T-1) x (N+1)
     prior = np.zeros((1, target_weights.shape[1]))
     w_prev = np.vstack([prior, w_all[:-1]])  # (T-1) x (N+1)
-    one_way_turnover: np.ndarray = np.abs(w_all - w_prev).sum(axis=1) / 2.0
-    cost_frac: np.ndarray = one_way_turnover * transaction_cost_bps / 10_000.0
+    one_way_turnover: npt.NDArray[np.float64] = np.abs(w_all - w_prev).sum(axis=1) / 2.0
+    cost_frac: npt.NDArray[np.float64] = one_way_turnover * transaction_cost_bps / 10_000.0
 
-    net_rets: np.ndarray = gross_return - cost_frac
+    net_rets: npt.NDArray[np.float64] = gross_return - cost_frac
     net_rets_series = pd.Series(net_rets, index=risky_rets.index)
 
     # Equity curve: initial_capital at t=0, then compounded
