@@ -1,0 +1,36 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.Python
+*.so
+dist/
+build/
+
+# Envs
+.venv/
+venv/
+.env
+
+# Tooling caches
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# IDE
+.idea/
+.vscode/
+
+# Data cache — do not commit prices
+data/*.parquet
+data/*.csv
+!data/.gitkeep
+
+# OS
+.DS_Store
+Thumbs.db
