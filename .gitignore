@@ -34,3 +34,6 @@ data/*.csv
 # OS
 .DS_Store
 Thumbs.db
+
+# Agent context — local only
+CONTEXT.md

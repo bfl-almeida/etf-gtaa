@@ -21,7 +21,7 @@ def main() -> None:
     sub = parser.add_subparsers(dest="cmd", required=True)
 
     bt = sub.add_parser("backtest", help="Run the baseline Faber backtest.")
-    bt.add_argument("--start", type=date.fromisoformat, default=date(2003, 9, 1))
+    bt.add_argument("--start", type=date.fromisoformat, default=date(2007, 6, 1))
     bt.add_argument("--end", type=date.fromisoformat, default=None)
     bt.add_argument(
         "--tickers",
@@ -83,6 +83,46 @@ def _run_backtest_cli(args: argparse.Namespace) -> None:
         initial_capital=config.initial_capital,
     )
 
-    metrics = summary(result.monthly_returns, result.equity_curve)
-    print(metrics.to_string())
+    # Equal-weight buy-and-hold benchmark: always 1/N in each risky ticker, no timing.
+    n_risky = len(config.tickers)
+    bnh_weights = pd.DataFrame(
+        1.0 / n_risky,
+        index=risky.index,
+        columns=list(config.tickers),
+    )
+    bnh_weights["CASH"] = 0.0
+    bnh_result = run_backtest(
+        risky,
+        bnh_weights,
+        cash_return=0.0,
+        transaction_cost_bps=config.transaction_cost_bps,
+        initial_capital=config.initial_capital,
+    )
+
+    table = pd.DataFrame(
+        {
+            "Faber GTAA": summary(result.monthly_returns, result.equity_curve),
+            "EW Buy & Hold": summary(bnh_result.monthly_returns, bnh_result.equity_curve),
+        }
+    )
+    print(table.to_string(float_format="{:.4f}".format))
+
+    # ── Diagnostics ───────────────────────────────────────────────────────────
+    # Average cash weight across the periods actually used by the backtest.
+    avg_cash_pct = targets["CASH"].iloc[:-1].mean() * 100
+    cash_source = (
+        config.cash_ticker
+        if config.cash_ticker is not None and isinstance(cash_return, pd.Series)
+        else "fallback (0%)"
+    )
+    total_to_faber = result.turnover.sum()
+    total_to_bnh = bnh_result.turnover.sum()
+
+    print("\nDiagnostics")
+    print(f"  % months w/ cash sleeve : {avg_cash_pct:.1f}% avg cash weight")
+    print(f"  Cash return source      : {cash_source}")
+    print(
+        f"  Total one-way turnover  : "
+        f"{total_to_faber:.2f}x (Faber GTAA) | {total_to_bnh:.2f}x (EW Buy & Hold)"
+    )
 
