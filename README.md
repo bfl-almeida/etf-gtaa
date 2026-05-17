@@ -8,19 +8,21 @@ Built as a clean, tested Python package: vectorized backtest engine, CLI, and no
 
 ## Results (2007-06 → 2024-12, SPY/EFA/IYR/GSG/AGG, 10 bps cost, BIL cash proxy)
 
-| Metric        | EW Buy & Hold | Faber GTAA | Dual Momentum |
-|---------------|:-------------:|:----------:|:-------------:|
-| CAGR          | —             | —          | —             |
-| Ann. Vol      | —             | —          | —             |
-| Sharpe        | —             | —          | —             |
-| Max Drawdown  | —             | —          | —             |
-| Calmar        | —             | —          | —             |
-| Hit Ratio     | —             | —          | —             |
+| Metric       | EW Buy & Hold | Faber GTAA | Dual Momentum |
+|--------------|:-------------:|:----------:|:-------------:|
+| CAGR         |    4.04 %     |   4.21 %   |    3.64 %     |
+| Ann. Vol     |   13.43 %     |   6.60 %   |   12.10 %     |
+| Sharpe       |    0.36       |   0.66     |    0.36       |
+| Max Drawdown |  −47.51 %     | −12.65 %   |  −31.07 %     |
+| Calmar       |    0.09       |   0.33     |    0.12       |
+| Hit Ratio    |   61.90 %     |  64.29 %   |   64.29 %     |
 
-> Run `poetry run etf-gtaa backtest --start 2007-06-01` to populate the table above,
-> or open `notebooks/01_faber_gtaa_replication.ipynb` for equity curves and drawdown
-> charts, and `notebooks/02_strategy_comparison.ipynb` for the 3-way comparison and
-> sensitivity heatmaps (Sharpe / CAGR across SMA window × transaction cost grid).
+**Key result:** Faber's CAGR is close to buy-and-hold, but with roughly half the volatility, about a quarter of the maximum drawdown, and a Sharpe of 0.66 vs 0.36.
+
+> Full equity curves, drawdown charts, and sensitivity heatmaps (Sharpe / CAGR across
+> SMA window × transaction cost grid) are in the notebooks:
+> [`01_faber_gtaa_replication.ipynb`](notebooks/01_faber_gtaa_replication.ipynb) ·
+> [`02_strategy_comparison.ipynb`](notebooks/02_strategy_comparison.ipynb)
 
 ## Quickstart
 
@@ -35,11 +37,14 @@ poetry install --with dev
 # 3. Run the test suite
 poetry run pytest
 
-# 4. Faber GTAA vs equal-weight benchmark
-poetry run etf-gtaa backtest --start 2007-06-01
+# 4. Reproduce the results in the table above (fixed window)
+poetry run etf-gtaa backtest --start 2007-06-01 --end 2024-12-31
 
-# 5. Dual Momentum strategy
-poetry run etf-gtaa backtest --start 2007-06-01 --strategy dual_momentum
+# 5. Dual Momentum (same fixed window)
+poetry run etf-gtaa backtest --start 2007-06-01 --end 2024-12-31 --strategy dual_momentum
+
+# 6. Run to today (results will differ from the table)
+poetry run etf-gtaa backtest --start 2007-06-01
 ```
 
 ## What's in the repo
