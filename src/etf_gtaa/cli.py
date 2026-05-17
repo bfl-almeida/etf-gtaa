@@ -39,8 +39,18 @@ def main() -> None:
         default="faber",
         help="Timing strategy to run (default: faber).",
     )
-    bt.add_argument("--top-k", type=int, default=2, help="Dual momentum: assets selected by relative ranking.")
-    bt.add_argument("--momentum-lookback", type=int, default=12, help="Dual momentum: return lookback in months.")
+    bt.add_argument(
+        "--top-k",
+        type=int,
+        default=2,
+        help="Dual momentum: assets selected by relative ranking.",
+    )
+    bt.add_argument(
+        "--momentum-lookback",
+        type=int,
+        default=12,
+        help="Dual momentum: return lookback in months.",
+    )
 
     args = parser.parse_args()
     if args.cmd == "backtest":

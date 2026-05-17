@@ -24,7 +24,10 @@ def test_to_monthly_returns_last_observation_per_month() -> None:
 
 def test_assert_no_nan_raises_on_leading_nan() -> None:
     idx = pd.date_range("2020-01-01", periods=5, freq="B")
-    prices = pd.DataFrame({"A": [1.0, 2.0, 3.0, 4.0, 5.0], "B": [np.nan, 2.0, 3.0, 4.0, 5.0]}, index=idx)
+    prices = pd.DataFrame(
+        {"A": [1.0, 2.0, 3.0, 4.0, 5.0], "B": [np.nan, 2.0, 3.0, 4.0, 5.0]},
+        index=idx,
+    )
     with pytest.raises(ValueError, match="NaN"):
         _assert_no_nan(prices, date(2020, 1, 1))
 
