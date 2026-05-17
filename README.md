@@ -19,6 +19,10 @@ Built as a clean, tested Python package: vectorized backtest engine, CLI, and no
 
 **Key result:** Faber's CAGR is close to buy-and-hold, but with roughly half the volatility, about a quarter of the maximum drawdown, and a Sharpe of 0.66 vs 0.36.
 
+Dual Momentum underperformed buy-and-hold over this window, with a −31 % drawdown. The cause is the universe size — five risky assets give the relative-momentum stage enough survivors that the absolute filter rarely pushes the whole book to cash (only 8.5 % of months). Canonical GEM uses two or three assets, so the cash filter bites harder. It is a design tradeoff between breadth and downside protection, not a broken filter. A narrower top-1 selection would tighten the cash filter — left as future work.
+
+*All returns are net of transaction costs (10 bps one-way).*
+
 > Full equity curves, drawdown charts, and sensitivity heatmaps (Sharpe / CAGR across
 > SMA window × transaction cost grid) are in the notebooks:
 > [`01_faber_gtaa_replication.ipynb`](notebooks/01_faber_gtaa_replication.ipynb) ·
